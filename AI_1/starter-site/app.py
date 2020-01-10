@@ -6,9 +6,17 @@ from dotenv import load_dotenv
 load_dotenv()
 
 # Load keys
+COGSVCS_CLIENTURL = os.environ["COGSVCS_CLIENTURL"]
+COGSVCS_KEY = os.environ["COGSVCS_KEY"]
+COGSVCS_REGION = 'northcentralus'
 
 # Create vision_client
+from msrest.authentication import CognitiveServicesCredentials
+from azure.cognitiveservices.vision.computervision import ComputerVisionClient
+from azure.cognitiveservices.vision.computervision.models import ComputerVisionErrorException
 
+vision_credentials = CognitiveServicesCredentials(COGSVCS_KEY)
+vision_client = ComputerVisionClient(COGSVCS_CLIENTURL, vision_credentials)
 # Create face_client
 
 # Create the application
@@ -89,3 +97,27 @@ def get_image(request):
         return Image(request.files["file"])
     else:
         return Image()
+
+# Function that extracts text from images
+
+
+def extract_text_from_image(image, client):
+    try:
+        result = client.recognize_printed_text_in_stream(image=image)
+
+        lines = []
+        if len(result.regions) == 0:
+            lines.append("Photo contains no text to translate")
+
+        else:
+            for line in result.regions[0].lines:
+                text = " ".join([word.text for word in line.words])
+                lines.append(text)
+
+        return lines
+
+    except ComputerVisionErrorException as e:
+        return ["Computer Vision API error: " + e.message]
+
+    except:
+        return ["Error calling the Computer Vision API"]
